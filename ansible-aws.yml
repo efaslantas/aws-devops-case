@@ -1,0 +1,16 @@
+---
+- amazon.aws.ec2:
+    key_name: case
+    group: caserver
+    instance_type: t2.micro
+    image: ami-0d527b8c289b4af7f
+    region: eu-central-1a
+    wait: yes
+    wait_timeout: 500
+    count: 5
+    volumes:
+    - device_name: /dev/sdb
+      volume_size: 10
+    monitoring: yes
+    vpc_subnet_id: subnet-29e63245
+    assign_public_ip: yes
