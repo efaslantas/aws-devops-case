@@ -1,13 +1,13 @@
 ---
-- name: Create Ec2 instances
+- name: Ec2 örnekleri oluşturun
   hosts: localhost
   gather_facts: false
   tasks:
 
-  # Block is a Group of Tasks combined together
-  - name: Get Info Block
+  # Case, birlikte birleştirilmiş bir Görevler Grubudur
+  - name: Get Info Case
     block: 
-      - name: Get Running instance Info
+      - name: Instances bilgilerini getir
         
         ec2_instance_info:
         register: ec2info 
@@ -16,12 +16,19 @@
         debug: var="ec2info.instances"
              
 
-    # By specifying always on the tag, 
-    # I let this block to run all the time by module_default
-    # this is for security to net create ec2 instances accidentally
-    tags: ['always', 'getinfoonly']
+    # etiketi üzerinde her zaman belirterek,
+    # Bu bloğun her zaman module_default ile çalışmasına izin verdim
+    # bu, güvenliğin yanlışlıkla ec2 örnekleri oluşturmaması içindir
 
-  - name: Create EC2 Block
+    tags: ['always', 'getinfoonly']
+  
+  - ec2_vpc:
+        state: present
+        cidr_block: 10.0.0.0/26
+        resource_tags: { "Environment":"Development" }
+        region: eu-central-1
+
+  - name: Create EC2 Case
     block: 
 
       - name: Launch ec2 instances
@@ -44,7 +51,7 @@
         register: ec2
         delegate_to: localhost
 
-      - name : Add instance to host group
+      - name : Instances gruba ekle
         add_host:
           hostname: "{{ item.public_ip }}"
           groupname: launched
@@ -58,6 +65,19 @@
           delay: 10
           timeout: 120
         loop: "{{ ec2.instances }}"
-    # By specifying never on the tag of this block, 
-    # I let this block to run only when explicitely being called
+    # Bu bloğun yalnızca açıkça çağrıldığında çalışmasına izin verdim
     tags: ['never', 'ec2-create']
+
+  - name: ELB 5000
+    ec2_elb_lb:
+     name: case-load-balancer
+    state: present
+    region: eu-central-1
+    zones:
+      - eu-central-1a
+      - eu-central-1b
+    listeners:
+      - protocol: http
+        load_balancer_port: 5000
+        instance_port: 5000
+  register: elb
